@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from google_play_scraper import reviews_all, Sort, exceptions as google_exceptions
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 import pytz
 import requests
 import math
@@ -47,18 +47,27 @@ with col1:
                     google_app_id,
                     lang='ko', country='kr', sort=Sort.NEWEST
                 )
+
             if google_reviews:
                 df_g = pd.DataFrame(google_reviews)
                 df_g['at'] = pd.to_datetime(df_g['at'], errors='coerce')
-                df_g = df_g[df_g['at'].notna()]
+                # 날짜 필터링
                 if use_date_filter and selected_start_date:
-                    # 날짜 비교 시 timezone 영향을 피하기 위해 date로 비교
-                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
-                tz = pytz.timezone('Asia/Seoul')
+                    df_g = df_g[df_g['at'].dt.date >= selected_start_date]
+                # 유효한 리뷰만
+                df_g = df_g[df_g['at'].notna()]
+
+                if df_g.empty:
+                    st.info(f"선택일 ({selected_start_date}) 이후 리뷰가 없습니다.")
+                else:
+                    df_g_disp = df_g[['userName','score','at','content','replyContent','repliedAt']].copy()
+                    df_g_disp.columns = ['작성자','평점','리뷰 작성일','리뷰 내용','개발자 답변','답변 작성일']
+                    tz = pytz.timezone('Asia/Seoul')
                     for c in ['리뷰 작성일','답변 작성일']:
                         df_g_disp[c] = pd.to_datetime(df_g_disp[c], errors='coerce')
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
+
                     st.subheader("평점 분포")
                     st.bar_chart(df_g_disp['평점'].value_counts().sort_index())
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
@@ -92,32 +101,35 @@ with col2:
                     if len(reviews) < per_page:
                         break
                 reviews = all_reviews[:review_count_limit]
+
             if reviews:
                 df_a = pd.DataFrame([
-                    {'작성자': r['author']['name']['label'],
-                     '평점': int(r['im:rating']['label']),
-                     '리뷰 작성일': r['updated']['label'],
-                     '버전': r['im:version']['label'],
-                     '제목': r['title']['label'],
-                     '리뷰 내용': r['content']['label']}
+                    {
+                        '작성자': r['author']['name']['label'],
+                        '평점': int(r['im:rating']['label']),
+                        '리뷰 작성일': r['updated']['label'],
+                        '버전': r['im:version']['label'],
+                        '제목': r['title']['label'],
+                        '리뷰 내용': r['content']['label']
+                    }
                     for r in reviews
                 ])
                 df_a['리뷰 작성일'] = pd.to_datetime(df_a['리뷰 작성일'], errors='coerce')
                 if use_date_filter and selected_start_date:
-                    df_a = df_a[df_a['리뷰 작성일'] >= pd.Timestamp(selected_start_date)]
+                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
+
                 tz = pytz.timezone('Asia/Seoul')
-                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(lambda x: x.tz_localize('UTC') if x.tzinfo is None else x)
+                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(
+                    lambda x: x.tz_localize('UTC') if x.tzinfo is None else x
+                )
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
-                # 평점 분포 (Altair로 붉은색 그래프, 레이블 제거)
+
                 st.subheader("평점 분포")
                 rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
                 rating_counts.columns = ['평점', 'count']
                 chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
-    x=alt.X('평점:O', axis=alt.Axis(title=None)),
-    y=alt.Y('count:Q', axis=alt.Axis(title=None))
-).mark_bar(color='red').encode(
-                    x=alt.X('평점:O', axis=None),
-                    y=alt.Y('count:Q', axis=None)
+                    x=alt.X('평점:O', axis=alt.Axis(title=None)),
+                    y=alt.Y('count:Q', axis=alt.Axis(title=None))
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
