@@ -52,13 +52,9 @@ with col1:
                 df_g['at'] = pd.to_datetime(df_g['at'], errors='coerce')
                 df_g = df_g[df_g['at'].notna()]
                 if use_date_filter and selected_start_date:
-                    df_g = df_g[df_g['at'] >= pd.Timestamp(selected_start_date)]
-                if df_g.empty:
-                    st.info(f"선택일 ({selected_start_date}) 이후 리뷰가 없습니다.")
-                else:
-                    df_g_disp = df_g[['userName','score','at','content','replyContent','repliedAt']].copy()
-                    df_g_disp.columns = ['작성자','평점','리뷰 작성일','리뷰 내용','개발자 답변','답변 작성일']
-                    tz = pytz.timezone('Asia/Seoul')
+                    # 날짜 비교 시 timezone 영향을 피하기 위해 date로 비교
+                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
+                tz = pytz.timezone('Asia/Seoul')
                     for c in ['리뷰 작성일','답변 작성일']:
                         df_g_disp[c] = pd.to_datetime(df_g_disp[c], errors='coerce')
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
@@ -117,8 +113,11 @@ with col2:
                 rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
                 rating_counts.columns = ['평점', 'count']
                 chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
-                    x=alt.X('평점:O', axis=alt.Axis(title=None)),
-                    y=alt.Y('count:Q', axis=alt.Axis(title=None))
+    x=alt.X('평점:O', axis=alt.Axis(title=None)),
+    y=alt.Y('count:Q', axis=alt.Axis(title=None))
+).mark_bar(color='red').encode(
+                    x=alt.X('평점:O', axis=None),
+                    y=alt.Y('count:Q', axis=None)
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
