@@ -11,6 +11,19 @@ import altair as alt
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
 st.title("📱 앱 리뷰 대시보드")
 st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
+# --- 모바일에서도 두 컬럼을 수평으로 유지하기 위한 CSS ---
+st.markdown("""
+<style>
+/* 모바일 화면(최대 600px 폭)에서도 두 컬럼을 50%씩 나누어 수평 정렬 */
+@media (max-width: 600px) {
+  .stColumns > div {
+    width: 50% !important;
+    min-width: 50% !important;
+    display: inline-block !important;
+    float: left;
+  }
+}
+""", unsafe_allow_html=True)
 
 # --- 입력 섹션 ---
 st.sidebar.header("앱 정보 입력")
