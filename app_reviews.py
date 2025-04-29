@@ -48,19 +48,29 @@ with col1:
                 # DataFrame 생성
                 df_google = pd.DataFrame(google_reviews)
 
-                # 'at' 컬럼을 datetime 객체로 변환 (시간대 정보가 있을 수 있으므로 astimezone 사용)
-                # errors='coerce'를 사용하여 변환 불가능한 값은 NaT로 처리
+                # 'at' 컬럼을 datetime 객체로 변환 (errors='coerce'로 변환 불가능한 값은 NaT 처리)
                 df_google['at'] = pd.to_datetime(df_google['at'], errors='coerce')
 
-                # 시간대 정보가 없는 경우 UTC로 가정하고 한국 시간대로 변환 (필요시)
-                # Google Play Scraper는 기본적으로 UTC 시간을 반환합니다.
+                # --- 시간대 처리 수정 ---
+                # 시간대 정보가 없는(tz-naive) 경우 UTC로 로컬라이즈한 후 KST로 변환
                 kst = pytz.timezone('Asia/Seoul')
+
+                # 'at' 컬럼에서 NaT가 아닌 값들 중 시간대 정보가 없는 경우 UTC로 로컬라이즈
+                # loc를 사용하여 원본 DataFrame을 직접 수정
+                naive_mask = df_google['at'].notna() & (df_google['at'].dt.tz is None)
+                if naive_mask.any():
+                     df_google.loc[naive_mask, 'at'] = df_google.loc[naive_mask, 'at'].dt.tz_localize('UTC')
+
+                # 시간대 정보가 있는 경우 (원래 UTC였거나 방금 UTC로 로컬라이즈된 경우) KST로 변환
+                # NaT 값은 tz_convert 시에도 NaT로 유지됩니다.
                 df_google['at'] = df_google['at'].dt.tz_convert(kst)
+                # -----------------------
 
 
                 # 기간 필터링
                 # date_input에서 반환되는 date 객체를 datetime 객체로 변환하여 비교
                 # 시작일은 해당 날짜의 00:00:00, 종료일은 해당 날짜의 23:59:59로 간주
+                # 기간 필터링 기준 시간대도 KST로 설정
                 start_datetime = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=kst)
                 end_datetime = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=kst)
 
@@ -84,6 +94,7 @@ with col1:
 
                 # 날짜/시간 컬럼 형식 지정 (이미 한국 시간대로 변환됨)
                 for col in ['리뷰 작성일', '답변 작성일']:
+                    # NaT 값은 fillna('N/A')로 처리
                     df_google_display[col] = df_google_display[col].dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
 
 
