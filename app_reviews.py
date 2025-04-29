@@ -54,11 +54,12 @@ with col1:
                 if df_g.empty:
                     st.info(f"선택일 ({selected_start_date}) 이후 리뷰가 없습니다.")
                 else:
-                    df_g_disp = df_g[[ 'userName','score','at','content','replyContent','repliedAt']].copy()
+                    df_g_disp = df_g[['userName','score','at','content','replyContent','repliedAt']].copy()
                     df_g_disp.columns = ['작성자','평점','리뷰 작성일','리뷰 내용','개발자 답변','답변 작성일']
                     tz = pytz.timezone('Asia/Seoul')
                     for c in ['리뷰 작성일','답변 작성일']:
                         df_g_disp[c] = pd.to_datetime(df_g_disp[c], errors='coerce')
+                        # UTC 로 로컬라이즈 후 KST 변환
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
 
@@ -100,6 +101,7 @@ with col2:
                     }
                     for r in reviews
                 ])
+                # datetime으로 변환
                 df_a['리뷰 작성일'] = pd.to_datetime(df_a['리뷰 작성일'], errors='coerce')
                 if use_date_filter and selected_start_date:
                     df_a = df_a[df_a['리뷰 작성일'] >= pd.Timestamp(selected_start_date)]
@@ -108,7 +110,12 @@ with col2:
                     st.info(f"선택일 ({selected_start_date}) 이후 App Store 리뷰가 없습니다.")
                 else:
                     tz = pytz.timezone('Asia/Seoul')
-                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
+                    # tz-aware 체크 후 로컬라이즈/변환
+                    def ensure_utc(x):
+                        if x.tzinfo is None:
+                            return x.tz_localize('UTC')
+                        return x
+                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(ensure_utc)
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
 
                     # 평점 분포
