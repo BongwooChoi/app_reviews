@@ -11,10 +11,11 @@ import altair as alt
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
 st.title("📱 앱 리뷰 대시보드")
 st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
-# --- 모바일에서도 두 컬럼을 수평으로 유지하기 위한 CSS ---
+# --- 모바일에서도 두 컬럼을 수평으로 유지하기 위한 CSS 및 버튼 크기 조정 ---
 st.markdown(
     """
     <style>
+    /* 모바일 화면(최대 600px 폭)에서도 두 컬럼을 50%씩 나누어 수평 정렬 */
     @media (max-width: 600px) {
       .stColumns > div {
         width: 50% !important;
@@ -23,28 +24,18 @@ st.markdown(
         float: left;
       }
     }
+    /* 다운로드 버튼 높이 및 패딩 조정 */
+    .stDownloadButton button {
+      padding-top: 0.25em !important;
+      padding-bottom: 0.25em !important;
+      font-size: 0.9em !important;
+      line-height: 1.2em !important;
+      height: auto !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
-)
-
-# --- 입력 섹션 ---
-st.sidebar.header("앱 정보 입력")
-google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
-apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
-review_count_limit = st.sidebar.slider(
-    "최대 리뷰 개수", 50, 200, 200, 10,
-    help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건)."
-)
-use_date_filter = st.sidebar.checkbox(
-    "시작일자 필터 사용", value=False,
-    help="선택 시 특정 날짜 이후 리뷰만 표시합니다."
-)
-selected_start_date = None
-if use_date_filter:
-    selected_start_date = st.sidebar.date_input(
-        "리뷰 시작일 선택",
-        value=date.today() - timedelta(days=30),
+),
         help="선택한 날짜(포함) 이후의 리뷰만 가져옵니다."
     )
 
