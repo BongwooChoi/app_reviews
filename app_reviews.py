@@ -84,7 +84,18 @@ with col1:
                     st.subheader("평점 분포")
                     st.bar_chart(df_g_disp['평점'].value_counts().sort_index())
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
-                    st.dataframe(df_g_disp, height=500, use_container_width=True)
+# Google 리뷰 다운로드 버튼
+csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
+col_g1, col_g2 = st.columns([8,1])
+with col_g2:
+    st.download_button(
+        label="다운로드",
+        data=csv_g,
+        file_name="google_reviews.csv",
+        mime="text/csv"
+    )
+# 리뷰 테이블 표시
+st.dataframe(df_g_disp, height=500, use_container_width=True)(df_g_disp, height=500, use_container_width=True)
             else:
                 st.info("리뷰를 찾을 수 없습니다.")
         except google_exceptions.NotFoundError:
@@ -146,7 +157,18 @@ with col2:
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
-                st.dataframe(df_a, height=500, use_container_width=True)
+# App Store 리뷰 다운로드 버튼
+csv_a = df_a.to_csv(index=False).encode('utf-8')
+col_a1, col_a2 = st.columns([8,1])
+with col_a2:
+    st.download_button(
+        label="다운로드",
+        data=csv_a,
+        file_name="apple_reviews.csv",
+        mime="text/csv"
+    )
+# 리뷰 테이블 표시
+st.dataframe(df_a, height=500, use_container_width=True)(df_a, height=500, use_container_width=True)
             else:
                 st.info("App Store 리뷰를 찾을 수 없습니다.")
         except Exception as e:
