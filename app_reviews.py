@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from google_play_scraper import reviews_all, Sort, exceptions as google_exceptions
-from datetime import datetime, date, timedelta
-import pytz
+from datetime import datetime, date, timedelta # date와 timedelta 추가
+import pytz # 시간대 처리를 위해 pytz 추가
 
 # --- Streamlit 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="Google Play 리뷰 대시보드")
@@ -11,11 +11,13 @@ st.caption("Google Play Store 앱 리뷰를 확인하세요.")
 
 # --- 입력 섹션 ---
 st.sidebar.header("앱 정보 입력")
+# Google Play 앱 ID 기본값을 'kr.co.kbliSmart'로 설정
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
-review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 1000, 50)
+# 리뷰 개수 제한 슬라이더의 기본값을 1000으로 변경
+review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 1000, 50) # 리뷰 개수 제한 슬라이더
 
-# 리뷰 시작일 선택 위젯 추가 (기본값: 오늘로부터 90일 전)
-default_start_date = date.today() - timedelta(days=90)
+# 리뷰 시작일 선택 위젯 추가 (기본값: 2025년 4월 14일)
+default_start_date = date(2025, 4, 14) # 기본 시작일자를 2025년 4월 14일로 설정
 selected_start_date = st.sidebar.date_input(
     "리뷰 시작일 선택",
     value=default_start_date,
@@ -77,14 +79,11 @@ with col1:
                     # 날짜/시간 컬럼을 한국 시간대로 변환하고 형식 지정 (NaT 처리 포함)
                     kst = pytz.timezone('Asia/Seoul')
                     for col in ['리뷰 작성일', '답변 작성일']:
-                         # NaT(Not a Time) 값을 먼저 처리하고 시간대 변환 및 형식 지정
-                         df_google_display[col] = pd.to_datetime(df_google_display[col], errors='coerce') # 안전을 위해 다시 확인
+                         df_google_display[col] = pd.to_datetime(df_google_display[col], errors='coerce')
 
                          # 시간대 정보가 없는 경우 UTC로 가정하고 변환
                          if df_google_display[col].dt.tz is None:
-                              # 'errors' 인자는 여기에서 지원되지 않음.
-                              # naive datetime은 UTC로 간주하고 localize
-                              df_google_display[col] = df_google_display[col].dt.tz_localize('UTC') # <-- errors='coerce' 제거
+                              df_google_display[col] = df_google_display[col].dt.tz_localize('UTC')
 
                          # KST로 변환하고 문자열로 형식 지정
                          df_google_display[col] = df_google_display[col].dt.tz_convert(kst).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
@@ -104,14 +103,14 @@ with col1:
                     st.subheader(f"선택일 ({selected_start_date}) 이후 리뷰 ({len(df_google_filtered)}개)")
                     st.dataframe(df_google_display, height=600, use_container_width=True)
 
-            else: # google_reviews_limited가 비어있을 경우
+            else:
                  st.info("해당 앱 ID에 대한 리뷰를 찾을 수 없습니다.")
 
 
         except google_exceptions.NotFoundError:
             st.error(f"Google Play Store에서 앱 ID '{google_app_id}'를 찾을 수 없습니다. 앱 ID를 확인해주세요.")
         except Exception as e:
-            st.error(f"Google Play Store 리뷰 로딩 및 처리 중 오류 발생: {type(e).__name__}: {e}") # 오류 타입 포함하여 출력
+            st.error(f"Google Play Store 리뷰 로딩 및 처리 중 오류 발생: {type(e).__name__}: {e}")
             st.exception(e)
     else:
         st.warning("Google Play 앱 ID를 입력해주세요.")
