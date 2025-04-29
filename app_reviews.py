@@ -52,7 +52,7 @@ col1, col2 = st.columns(2)
 
 # --- Google Play Store 리뷰 (왼쪽) ---
 with col1:
-    st.header("🤖 Google Play Store 리뷰")
+    st.header("🤖 Google Play 리뷰")
     if google_app_id:
         try:
             with st.spinner(f"'{google_app_id}' 리뷰 로딩 중... (전체)"):
