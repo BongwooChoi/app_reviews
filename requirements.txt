@@ -4,3 +4,4 @@ google-play-scraper
 app-store-scraper
 pytz
 requests-html
+lxml_html_clean
