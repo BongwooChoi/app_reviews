@@ -174,7 +174,7 @@ with col1:
                     count_col_g, btn_col_g = st.columns([8, 2]) # 비율 조정
 
                     with count_col_g:
-                         st.subheader(f"총 {len(df_g_disp)}개 리뷰(전체)") # 필터링된 리뷰 개수 표시
+                         st.subheader(f"{len(df_g_disp)}개 리뷰(전체)") # 필터링된 리뷰 개수 표시
 
                     with btn_col_g:
                         # 엑셀 파일 생성을 위한 BytesIO 객체 생성
@@ -305,7 +305,7 @@ with col2:
                     count_col_a, btn_col_a = st.columns([8, 2]) # 비율 조정
 
                     with count_col_a:
-                         st.subheader(f"총 {len(df_a)}개 리뷰(최신)") # 필터링된 리뷰 개수 표시
+                         st.subheader(f"{len(df_a)}개 리뷰(최신)") # 필터링된 리뷰 개수 표시
 
                     with btn_col_a:
                         # 엑셀 파일 생성을 위한 BytesIO 객체 생성
