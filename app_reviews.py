@@ -11,6 +11,7 @@ import altair as alt
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
 st.title("📱 앱 리뷰 대시보드")
 st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
+
 # --- 모바일에서도 두 컬럼을 수평으로 유지하기 위한 CSS ---
 st.markdown(
     """
@@ -87,10 +88,32 @@ with col1:
 
                     # 평점 분포 및 테이블
                     st.subheader("평점 분포")
-                    st.bar_chart(df_g_disp['평점'].value_counts().sort_index())
+                    # Altair 차트로 변경하여 이미지 다운로드 지원
+                    rating_counts_g = df_g_disp['평점'].value_counts().sort_index().reset_index()
+                    rating_counts_g.columns = ['평점','count']
+                    chart_g = alt.Chart(rating_counts_g).mark_bar().encode(
+                        x=alt.X('평점:O', axis=alt.Axis(title=None)),
+                        y=alt.Y('count:Q', axis=alt.Axis(title=None))
+                    )
+                    st.altair_chart(chart_g, use_container_width=True)
+                    # 차트 PNG 다운로드 (utf-8-sig는 CSV 한글 깨짐 방지용)
+                    try:
+                        from io import BytesIO
+                        buf = BytesIO()
+                        chart_g.save(buf, format='png')
+                        buf.seek(0)
+                        st.download_button(
+                            label="차트 다운로드 (PNG)",
+                            data=buf,
+                            file_name="google_rating_distribution.png",
+                            mime="image/png"
+                        )
+                    except Exception:
+                        pass
+
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
-                    # 다운로드 버튼
-                    csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
+                    # 다운로드 버튼 (CSV, utf-8-sig로 인코딩하여 Excel에서 한글 깨짐 방지)
+                    csv_g = df_g_disp.to_csv(index=False).encode('utf-8-sig')
                     _, btn_col = st.columns([8,1])
                     with btn_col:
                         st.download_button(
@@ -144,39 +167,4 @@ with col2:
                 ])
                 df_a['리뷰 작성일'] = pd.to_datetime(df_a['리뷰 작성일'], errors='coerce')
                 if use_date_filter and selected_start_date:
-                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
-
-                tz = pytz.timezone('Asia/Seoul')
-                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(
-                    lambda x: x.tz_localize('UTF', ambiguous='NaT', nonexistent='NaT') if x.tzinfo is None else x
-                )
-                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
-
-                # 평점 분포 및 테이블
-                st.subheader("평점 분포")
-                rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
-                rating_counts.columns = ['평점','count']
-                chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
-                    x=alt.X('평점:O', axis=alt.Axis(title=None)),
-                    y=alt.Y('count:Q', axis=alt.Axis(title=None))
-                )
-                st.altair_chart(chart, use_container_width=True)
-                st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
-                # 다운로드 버튼
-                csv_a = df_a.to_csv(index=False).encode('utf-8')
-                _, btn_a = st.columns([8,1])
-                with btn_a:
-                    st.download_button(
-                        label="다운로드",
-                        data=csv_a,
-                        file_name="apple_reviews.csv",
-                        mime="text/csv"
-                    )
-                st.dataframe(df_a, height=500, use_container_width=True)
-        except Exception as e:
-            st.error(f"App Store 리뷰 로딩 오류: {e}")
-
-# --- 하단 출처 ---
-
-st.divider()
-st.markdown("데이터 출처: `google-play-scraper`, iTunes RSS API with pagination")
+                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start
