@@ -13,7 +13,7 @@ st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
 # --- 입력 섹션 ---
 st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
-apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "")
+apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
 review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 500, 50)
 
 # 시작일자 필터 사용 체크박스
@@ -86,11 +86,9 @@ with col2:
                 url = f"https://itunes.apple.com/kr/rss/customerreviews/id={apple_app_id}/json"
                 resp = requests.get(url)
                 data = resp.json().get('feed', {}).get('entry', [])
-                # 첫번째 엔트리는 앱 정보이므로 리뷰만 추출
                 reviews = data[1:review_count_limit+1]
 
             if reviews:
-                # DataFrame 변환
                 df_a = pd.DataFrame([
                     {
                         '작성자': r['author']['name']['label'],
@@ -109,7 +107,6 @@ with col2:
                 if df_a.empty:
                     st.info(f"선택일 ({selected_start_date}) 이후 App Store 리뷰가 없습니다.")
                 else:
-                    # 시간대 변환
                     tz = pytz.timezone('Asia/Seoul')
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
