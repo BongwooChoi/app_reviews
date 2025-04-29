@@ -35,6 +35,27 @@ st.markdown(
     </style>
     """,
     unsafe_allow_html=True
+)
+에서도 두 컬럼을 50%씩 나누어 수평 정렬 */
+    @media (max-width: 600px) {
+      .stColumns > div {
+        width: 50% !important;
+        min-width: 50% !important;
+        display: inline-block !important;
+        float: left;
+      }
+    }
+    /* 다운로드 버튼 높이 및 패딩 조정 */
+    .stDownloadButton button {
+      padding-top: 0.25em !important;
+      padding-bottom: 0.25em !important;
+      font-size: 0.9em !important;
+      line-height: 1.2em !important;
+      height: auto !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 ),
         help="선택한 날짜(포함) 이후의 리뷰만 가져옵니다."
     )
