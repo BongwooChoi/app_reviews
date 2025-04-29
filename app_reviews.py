@@ -117,8 +117,8 @@ with col2:
                 rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
                 rating_counts.columns = ['평점', 'count']
                 chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
-                    x=alt.X('평점:O', axis=None),
-                    y=alt.Y('count:Q', axis=None)
+                    x=alt.X('평점:O', axis=alt.Axis(title=None)),
+                    y=alt.Y('count:Q', axis=alt.Axis(title=None))
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
