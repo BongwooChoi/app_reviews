@@ -88,7 +88,6 @@ with col1:
 
                     # 평점 분포 및 테이블
                     st.subheader("평점 분포")
-                    # Altair 차트로 변경하여 이미지 다운로드 지원
                     rating_counts_g = df_g_disp['평점'].value_counts().sort_index().reset_index()
                     rating_counts_g.columns = ['평점','count']
                     chart_g = alt.Chart(rating_counts_g).mark_bar().encode(
@@ -96,7 +95,8 @@ with col1:
                         y=alt.Y('count:Q', axis=alt.Axis(title=None))
                     )
                     st.altair_chart(chart_g, use_container_width=True)
-                    # 차트 PNG 다운로드 (utf-8-sig는 CSV 한글 깨짐 방지용)
+
+                    # 차트 다운로드 (PNG)
                     try:
                         from io import BytesIO
                         buf = BytesIO()
@@ -112,7 +112,7 @@ with col1:
                         pass
 
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
-                    # 다운로드 버튼 (CSV, utf-8-sig로 인코딩하여 Excel에서 한글 깨짐 방지)
+                    # CSV 다운로드 (utf-8-sig)
                     csv_g = df_g_disp.to_csv(index=False).encode('utf-8-sig')
                     _, btn_col = st.columns([8,1])
                     with btn_col:
@@ -167,4 +167,37 @@ with col2:
                 ])
                 df_a['리뷰 작성일'] = pd.to_datetime(df_a['리뷰 작성일'], errors='coerce')
                 if use_date_filter and selected_start_date:
-                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start
+                    df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
+
+                tz = pytz.timezone('Asia/Seoul')
+                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
+                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
+
+                # 평점 분포 및 테이블
+                st.subheader("평점 분포")
+                rating_counts_a = df_a['평점'].value_counts().sort_index().reset_index()
+                rating_counts_a.columns = ['평점','count']
+                chart_a = alt.Chart(rating_counts_a).mark_bar().encode(
+                    x=alt.X('평점:O', axis=alt.Axis(title=None)),
+                    y=alt.Y('count:Q', axis=alt.Axis(title=None))
+                )
+                st.altair_chart(chart_a, use_container_width=True)
+
+                st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
+                # CSV 다운로드 (utf-8-sig)
+                csv_a = df_a.to_csv(index=False).encode('utf-8-sig')
+                _, btn_a = st.columns([8,1])
+                with btn_a:
+                    st.download_button(
+                        label="다운로드",
+                        data=csv_a,
+                        file_name="apple_reviews.csv",
+                        mime="text/csv"
+                    )
+                st.dataframe(df_a, height=500, use_container_width=True)
+        except Exception as e:
+            st.error(f"App Store 리뷰 로딩 오류: {e}")
+
+# --- 하단 출처 ---
+st.divider()
+st.markdown("데이터 출처: `google-play-scraper`, iTunes RSS API with pagination")
