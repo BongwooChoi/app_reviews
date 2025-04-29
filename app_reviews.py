@@ -4,6 +4,7 @@ from google_play_scraper import reviews_all, Sort, exceptions as google_exceptio
 from datetime import datetime, date, timedelta
 import pytz
 import requests
+import math
 
 # --- Streamlit 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
@@ -14,10 +15,9 @@ st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
 st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
 apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
-# App Store RSS 피드 최대 리뷰 한계는 약 200건입니다.
 review_count_limit = st.sidebar.slider(
     "최대 리뷰 개수", 50, 200, 200, 10,
-    help="App Store RSS 피드로 가져올 수 있는 최대 200건까지 설정할 수 있습니다."
+    help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건)."
 )
 
 # 시작일자 필터 사용 체크박스
@@ -41,8 +41,7 @@ with col1:
     st.header("🤖 Google Play Store 리뷰")
     if google_app_id:
         try:
-            with st.spinner(f"'{google_app_id}' 리뷰 로딩 중... (전체 불러오는 중)"):
-                # review_count_limit와 무관하게 전체 리뷰를 가져옵니다.
+            with st.spinner(f"'{google_app_id}' 리뷰 로딩 중... (전체)"):
                 google_reviews = reviews_all(
                     google_app_id,
                     lang='ko', country='kr', sort=Sort.NEWEST
@@ -53,8 +52,7 @@ with col1:
                 df_g['at'] = pd.to_datetime(df_g['at'], errors='coerce')
                 df_g = df_g[df_g['at'].notna()]
                 if use_date_filter and selected_start_date:
-                    start_ts = pd.Timestamp(selected_start_date)
-                    df_g = df_g[df_g['at'] >= start_ts]
+                    df_g = df_g[df_g['at'] >= pd.Timestamp(selected_start_date)]
 
                 if df_g.empty:
                     st.info(f"선택일 ({selected_start_date}) 이후 리뷰가 없습니다.")
@@ -67,10 +65,8 @@ with col1:
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
 
-                    # 평점 분포
                     st.subheader("평점 분포")
-                    counts = df_g_disp['평점'].value_counts().sort_index()
-                    st.bar_chart(counts)
+                    st.bar_chart(df_g_disp['평점'].value_counts().sort_index())
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
                     st.dataframe(df_g_disp, height=500, use_container_width=True)
             else:
@@ -88,11 +84,21 @@ with col2:
     if apple_app_id:
         try:
             with st.spinner(f"App Store ID '{apple_app_id}' 리뷰 로딩 중... (최대 {review_count_limit}건)"):
-                url = f"https://itunes.apple.com/kr/rss/customerreviews/id={apple_app_id}/json"
-                resp = requests.get(url)
-                data = resp.json().get('feed', {}).get('entry', [])
-                # 첫번째 엔트리는 앱 정보이므로 리뷰만 추출
-                reviews = data[1:review_count_limit+1]
+                all_reviews = []
+                per_page = 50
+                pages = math.ceil(review_count_limit / per_page)
+                for page in range(1, pages + 1):
+                    url = f"https://itunes.apple.com/kr/rss/customerreviews/page={page}/id={apple_app_id}/json"
+                    resp = requests.get(url)
+                    entries = resp.json().get('feed', {}).get('entry', [])
+                    if not entries or len(entries) <= 1:
+                        break
+                    # 첫 페이지의 첫 entry는 앱 정보이므로 제외
+                    reviews = entries[1:] if page == 1 else entries
+                    all_reviews.extend(reviews)
+                    if len(reviews) < per_page:
+                        break
+                reviews = all_reviews[:review_count_limit]
 
             if reviews:
                 df_a = pd.DataFrame([
@@ -110,23 +116,16 @@ with col2:
                 if use_date_filter and selected_start_date:
                     df_a = df_a[df_a['리뷰 작성일'] >= pd.Timestamp(selected_start_date)]
 
-                if df_a.empty:
-                    st.info(f"선택일 ({selected_start_date}) 이후 App Store 리뷰가 없습니다.")
-                else:
-                    tz = pytz.timezone('Asia/Seoul')
-                    def ensure_utc(x):
-                        if x.tzinfo is None:
-                            return x.tz_localize('UTC')
-                        return x
-                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(ensure_utc)
-                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
+                tz = pytz.timezone('Asia/Seoul')
+                def ensure_utc(x):
+                    return x.tz_localize('UTC') if x.tzinfo is None else x
+                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(ensure_utc)
+                df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
 
-                    # 평점 분포
-                    st.subheader("평점 분포")
-                    counts = df_a['평점'].value_counts().sort_index()
-                    st.bar_chart(counts)
-                    st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건 요청)")
-                    st.dataframe(df_a, height=500, use_container_width=True)
+                st.subheader("평점 분포")
+                st.bar_chart(df_a['평점'].value_counts().sort_index())
+                st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
+                st.dataframe(df_a, height=500, use_container_width=True)
             else:
                 st.info("App Store 리뷰를 찾을 수 없습니다.")
         except Exception as e:
@@ -136,4 +135,4 @@ with col2:
 
 # --- 하단 출처 ---
 st.divider()
-st.markdown("데이터 출처: `google-play-scraper`, iTunes RSS API")
+st.markdown("데이터 출처: `google-play-scraper`, iTunes RSS API with pagination")
