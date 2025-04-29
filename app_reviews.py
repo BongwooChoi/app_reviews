@@ -129,7 +129,12 @@ with col2:
             if use_date_filter and selected_start_date:
                 df_a = df_a[df_a['리뷰 작성일'].dt.date >= selected_start_date]
             tz = pytz.timezone('Asia/Seoul')
-            df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_localize('UTC', nonexistent='NaT')
+            # tz-aware 처리: tz info 없으면 UTC로 로컬라이즈
+                    def ensure_utc(x):
+                        if x.tzinfo is None:
+                            return x.tz_localize('UTC')
+                        return x
+                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(ensure_utc)
             df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
 
             if df_a.empty:
