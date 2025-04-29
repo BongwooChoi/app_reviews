@@ -17,7 +17,8 @@ google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "
 # App Store 앱 ID 입력으로 변경하고 기본값을 '511711198'로 설정
 app_store_app_id = st.sidebar.text_input("App Store 앱 ID", "511711198")
 # --- App Store 앱 이름 입력 필드 추가 및 기본값 설정 ---
-app_store_app_name = st.sidebar.text_input("App Store 앱 이름", "kb라이프생명") # 앱 이름 기본값 설정
+# URL 경로에 사용된 소문자 'kb'를 반영하여 기본값을 'kb라이프생명'으로 변경
+app_store_app_name = st.sidebar.text_input("App Store 앱 이름", "kb라이프생명") # 앱 이름 기본값 설정 (소문자 kb)
 # --------------------------------------
 app_store_country = st.sidebar.selectbox(
     "App Store 국가 코드",
