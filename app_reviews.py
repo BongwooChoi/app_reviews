@@ -23,18 +23,46 @@ st.markdown(
         float: left;
       }
     }
-    /* 다운로드 버튼 컨테이너의 너비를 제한하여 버튼 크기 조절 */
+    /* 다운로드 버튼 컨테이너의 너비를 제한하여 버튼 크기 조절 및 세로 래핑 방지 */
     .stDownloadButton {
         width: auto !important; /* 버튼 자체는 내용에 맞게 */
         display: inline-block !important; /* 컬럼 내에서 인라인 블록으로 */
+        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        max-width: 100%; /* 부모 컨테이너 너비를 넘지 않도록 */
     }
-    /* 버튼을 포함하는 컬럼의 너비를 더 작게 */
+    /* 버튼을 포함하는 컬럼의 너비를 더 작게 (조정) */
     .stColumns > div:last-child { /* 마지막 컬럼 (버튼 컬럼) */
         flex-grow: 0 !important; /* 남은 공간을 차지하지 않도록 */
         flex-shrink: 0 !important; /* 줄어들지 않도록 */
-        width: 10% !important; /* 너비를 명시적으로 작게 설정 (예: 10%) */
+        /* 너비를 10%에서 20%로 조정하여 버튼 텍스트 공간 확보 */
+        width: 20% !important;
         min-width: unset !important; /* 최소 너비 제한 해제 */
+        display: flex; /* 내부 요소를 정렬하기 위해 flex 사용 */
+        justify-content: flex-end; /* 버튼을 컬럼 오른쪽으로 정렬 */
+        align-items: center; /* 세로 중앙 정렬 */
     }
+
+    /* 총 리뷰 개수 텍스트와 다운로드 버튼이 같은 라인에 오도록 조정 */
+    .stSubheader {
+        display: inline-block; /* 인라인 블록으로 표시 */
+        margin-right: 10px; /* 버튼과의 간격 추가 */
+        vertical-align: middle; /* 세로 중앙 정렬 */
+    }
+
+    /* Streamlit 컬럼 내부의 요소들이 플렉스 아이템으로 동작하도록 설정 */
+    .stColumns > div {
+        display: flex;
+        flex-direction: column; /* 기본 세로 방향 유지 */
+    }
+
+    /* 총 리뷰 개수와 다운로드 버튼을 담는 컨테이너에 대한 추가 스타일 */
+    /* 이 부분은 Streamlit의 내부 구조에 따라 다를 수 있으므로 테스트 필요 */
+     div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stSubheader"]) {
+        flex-direction: row; /* 총 리뷰 개수와 버튼을 수평으로 배치 */
+        align-items: center; /* 세로 중앙 정렬 */
+        justify-content: space-between; /* 양 끝 정렬 */
+     }
+
 
     </style>
     """,
@@ -114,12 +142,16 @@ with col1:
                     rating_counts_g = df_g_disp['평점'].value_counts().sort_index()
                     st.bar_chart(rating_counts_g) # Streamlit 기본 바 차트 사용
 
-                    st.subheader(f"총 {len(df_g_disp)}개 리뷰") # 필터링된 리뷰 개수 표시
-                    # 다운로드 버튼
-                    csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
-                    # 버튼을 위한 작은 컬럼 생성 (비율 조정)
-                    _, btn_col_g = st.columns([9,1]) # 버튼 컬럼 비율을 1/10로 조정
+                    # "총 리뷰 개수"와 "다운로드" 버튼을 위한 레이아웃 조정
+                    # st.subheader와 st.download_button을 같은 라인에 표시하기 위해 컬럼 사용
+                    count_col_g, btn_col_g = st.columns([8, 2]) # 비율 조정
+
+                    with count_col_g:
+                         st.subheader(f"총 {len(df_g_disp)}개 리뷰") # 필터링된 리뷰 개수 표시
+
                     with btn_col_g:
+                        # 다운로드 버튼
+                        csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
                         st.download_button(
                             label="다운로드",
                             data=csv_g,
@@ -231,13 +263,16 @@ with col2:
                     )
                     st.altair_chart(chart, use_container_width=True) # Altair 차트 표시
 
-                    st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)") # 필터링된 리뷰 개수 표시
-                    # 다운로드 버튼
-                    csv_a = df_a.to_csv(index=False).encode('utf-8')
-                    # 버튼을 위한 작은 컬럼 생성 (비율 조정)
-                    _, btn_col_a = st.columns([9,1]) # 버튼 컬럼 비율을 1/10로 조정
+                    # "총 리뷰 개수"와 "다운로드" 버튼을 위한 레이아웃 조정
+                    count_col_a, btn_col_a = st.columns([8, 2]) # 비율 조정
+
+                    with count_col_a:
+                         st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)") # 필터링된 리뷰 개수 표시
+
                     with btn_col_a:
-                         st.download_button(
+                        # 다운로드 버튼
+                        csv_a = df_a.to_csv(index=False).encode('utf-8')
+                        st.download_button(
                             label="다운로드",
                             data=csv_a,
                             file_name="apple_reviews.csv",
