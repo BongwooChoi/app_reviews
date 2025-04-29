@@ -186,7 +186,7 @@ with col1:
 
                         # 다운로드 버튼 (엑셀 형식)
                         st.download_button(
-                            label="다운로드 (Excel)", # 버튼 라벨 변경
+                            label="다운로드", # 버튼 라벨 변경
                             data=excel_buffer_g, # BytesIO 객체 전달
                             file_name="google_reviews.xlsx", # 파일 이름 변경
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # MIME 타입 변경
@@ -317,7 +317,7 @@ with col2:
 
                         # 다운로드 버튼 (엑셀 형식)
                         st.download_button(
-                            label="다운로드 (Excel)", # 버튼 라벨 변경
+                            label="다운로드", # 버튼 라벨 변경
                             data=excel_buffer_a, # BytesIO 객체 전달
                             file_name="apple_reviews.xlsx", # 파일 이름 변경
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # MIME 타입 변경
