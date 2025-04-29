@@ -6,3 +6,4 @@ pytz
 requests
 requests-html
 lxml_html_clean
+openpyxl
