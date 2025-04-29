@@ -7,6 +7,7 @@ import requests
 import math
 import altair as alt
 import io # BytesIO 사용을 위해 import
+import re # 텍스트 정제를 위해 import
 
 # --- Streamlit 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
@@ -34,34 +35,34 @@ st.markdown(
     /* 버튼을 포함하는 컬럼의 너비를 더 작게 (조정) */
     .stColumns > div:last-child { /* 마지막 컬럼 (버튼 컬럼) */
         flex-grow: 0 !important; /* 남은 공간을 차지하지 않도록 */
-        flex-shrink: 0 !important; /* 줄어들지 않도록 */
+        flex_shrink: 0 !important; /* 줄어들지 않도록 */
         /* 너비를 10%에서 20%로 조정하여 버튼 텍스트 공간 확보 */
         width: 20% !important;
-        min-width: unset !important; /* 최소 너비 제한 해제 */
+        min_width: unset !important; /* 최소 너비 제한 해제 */
         display: flex; /* 내부 요소를 정렬하기 위해 flex 사용 */
-        justify-content: flex-end; /* 버튼을 컬럼 오른쪽으로 정렬 */
-        align-items: center; /* 세로 중앙 정렬 */
+        justify_content: flex-end; /* 버튼을 컬럼 오른쪽으로 정렬 */
+        align_items: center; /* 세로 중앙 정렬 */
     }
 
     /* 총 리뷰 개수 텍스트와 다운로드 버튼이 같은 라인에 오도록 조정 */
     .stSubheader {
         display: inline-block; /* 인라인 블록으로 표시 */
-        margin-right: 10px; /* 버튼과의 간격 추가 */
-        vertical-align: middle; /* 세로 중앙 정렬 */
+        margin_right: 10px; /* 버튼과의 간격 추가 */
+        vertical_align: middle; /* 세로 중앙 정렬 */
     }
 
     /* Streamlit 컬럼 내부의 요소들이 플렉스 아이템으로 동작하도록 설정 */
     .stColumns > div {
         display: flex;
-        flex-direction: column; /* 기본 세로 방향 유지 */
+        flex_direction: column; /* 기본 세로 방향 유지 */
     }
 
     /* 총 리뷰 개수와 다운로드 버튼을 담는 컨테이너에 대한 추가 스타일 */
     /* 이 부분은 Streamlit의 내부 구조에 따라 다를 수 있으므로 테스트 필요 */
      div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stSubheader"]) {
-        flex-direction: row; /* 총 리뷰 개수와 버튼을 수평으로 배치 */
-        align-items: center; /* 세로 중앙 정렬 */
-        justify-content: space-between; /* 양 끝 정렬 */
+        flex_direction: row; /* 총 리뷰 개수와 버튼을 수평으로 배치 */
+        align_items: center; /* 세로 중앙 정렬 */
+        justify_content: space-between; /* 양 끝 정렬 */
      }
 
 
@@ -69,6 +70,25 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+# --- 텍스트 정제 함수 ---
+def clean_text_for_excel(text):
+    """
+    Excel 파일 저장을 위해 텍스트에서 문제가 될 수 있는 문자를 제거합니다.
+    제어 문자 및 일부 특수 문자를 제거 대상으로 합니다.
+    """
+    if pd.isna(text):
+        return text
+    # 텍스트가 아닌 경우 문자열로 변환 시도
+    text = str(text)
+    # Excel에서 문제가 될 수 있는 제어 문자 및 일부 특수 문자 제거
+    # 예: \x00 (Null), \x0b (Vertical Tab), \x0c (Form Feed) 등
+    # \n (줄바꿈), \r (캐리지 리턴), \t (탭)은 유지
+    cleaned_text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    # 추가적으로 문제가 될 수 있는 문자나 패턴이 있다면 여기에 추가하여 제거할 수 있습니다.
+    # 예: cleaned_text = cleaned_text.replace('특정문자', '')
+    return cleaned_text
+
 
 # --- 입력 섹션 ---
 st.sidebar.header("앱 정보 입력")
@@ -136,6 +156,12 @@ with col1:
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         # 서울 시간대로 변환하고 원하는 문자열 형식으로 포맷팅, NaT는 'N/A'로 표시
                         df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
+
+                    # --- 텍스트 정제 적용 (Google 리뷰) ---
+                    for col in ['리뷰 내용', '개발자 답변']:
+                         if col in df_g_disp.columns:
+                             df_g_disp[col] = df_g_disp[col].apply(clean_text_for_excel)
+                    # -----------------------------------
 
                     # 평점 분포 및 테이블
                     st.subheader("평점 분포")
@@ -255,6 +281,11 @@ with col2:
                      # 서울 시간대로 변환하고 원하는 문자열 형식으로 포맷팅
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
 
+                    # --- 텍스트 정제 적용 (App Store 리뷰) ---
+                    for col in ['제목', '리뷰 내용']:
+                         if col in df_a.columns:
+                             df_a[col] = df_a[col].apply(clean_text_for_excel)
+                    # -----------------------------------
 
                     # 평점 분포 및 테이블
                     st.subheader("평점 분포")
