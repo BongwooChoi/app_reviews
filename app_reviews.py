@@ -13,7 +13,7 @@ st.caption("Google Play Store 앱 리뷰를 확인하세요.")
 st.sidebar.header("앱 정보 입력")
 # Google Play 앱 ID 기본값을 'kr.co.kbliSmart'로 설정
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
-review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 200, 50) # 리뷰 개수 제한 슬라이더
+review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 1000, 50) # 리뷰 개수 제한 슬라이더
 
 # --- 레이아웃 설정 (단일 컬럼) ---
 # App Store 부분이 제거되었으므로 단일 컬럼 레이아웃 사용
