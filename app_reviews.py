@@ -14,7 +14,7 @@ st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
 st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
 apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
-review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 1000, 500, 50)
+review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 2000, 1000, 50)
 
 # 시작일자 필터 사용 체크박스
 use_date_filter = st.sidebar.checkbox(
