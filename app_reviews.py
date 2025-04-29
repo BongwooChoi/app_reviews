@@ -16,6 +16,9 @@ st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
 # App Store 앱 ID 입력으로 변경하고 기본값을 '511711198'로 설정
 app_store_app_id = st.sidebar.text_input("App Store 앱 ID", "511711198")
+# --- App Store 앱 이름 입력 필드 추가 및 기본값 설정 ---
+app_store_app_name = st.sidebar.text_input("App Store 앱 이름", "KB라이프생명") # 앱 이름 기본값 설정
+# --------------------------------------
 app_store_country = st.sidebar.selectbox(
     "App Store 국가 코드",
     ['kr', 'us', 'jp', 'gb', 'de', 'fr', 'cn'], # 주요 국가 코드 예시
@@ -97,15 +100,16 @@ with col1:
 # --- Apple App Store 리뷰 (오른쪽 컬럼) ---
 with col2:
     st.header("🍎 Apple App Store")
-    # 앱 ID와 국가 코드가 모두 입력되었는지 확인
-    if app_store_app_id and app_store_country:
+    # 앱 ID, 국가 코드, 앱 이름이 모두 입력되었는지 확인
+    if app_store_app_id and app_store_country and app_store_app_name: # app_name 조건 추가
         # 앱 ID가 숫자로만 구성되었는지 확인 (기본적인 유효성 검사)
         if app_store_app_id.isdigit():
             try:
-                # 앱 ID를 사용하여 로딩 메시지 표시
-                with st.spinner(f"App Store 앱 ID '{app_store_app_id}' ({app_store_country}) 리뷰 로딩 중..."):
-                    # app_id를 사용하여 AppStore 객체 생성
-                    app_store = AppStore(country=app_store_country, app_id=app_store_app_id)
+                # 앱 ID와 이름을 사용하여 로딩 메시지 표시
+                with st.spinner(f"App Store 앱 '{app_store_app_name}' (ID: {app_store_app_id}, 국가: {app_store_country}) 리뷰 로딩 중..."):
+                    # app_id, country, app_name을 모두 사용하여 AppStore 객체 생성
+                    # app-store-scraper 라이브러리는 일반적으로 앱 ID와 앱 이름 모두를 필요로 합니다.
+                    app_store = AppStore(country=app_store_country, app_id=app_store_app_id, app_name=app_store_app_name) # app_name 인자 추가
                     # 리뷰 개수 제한 적용
                     app_store.review(how_many=review_count_limit)
 
@@ -147,17 +151,17 @@ with col2:
                     st.dataframe(df_apple_display, height=600, use_container_width=True) # 너비 자동 조절
 
                 else:
-                    st.info(f"App Store 앱 ID '{app_store_app_id}' ({app_store_country})에 대한 리뷰를 찾을 수 없습니다.")
+                    st.info(f"App Store 앱 '{app_store_app_name}' (ID: {app_store_app_id}, 국가: {app_store_country})에 대한 리뷰를 찾을 수 없습니다.")
 
             except Exception as e:
                 # App Store 스크레이퍼는 특정 앱을 못 찾을 때 일반 Exception을 발생시킬 수 있음
-                st.error(f"App Store 리뷰 로딩 중 오류 발생: {e}. 앱 ID와 국가 코드를 확인해주세요.")
+                st.error(f"App Store 리뷰 로딩 중 오류 발생: {e}. 앱 ID, 앱 이름, 국가 코드를 확인해주세요.")
                 st.exception(e) # 상세 오류 로그 출력
-                st.info("팁: App Store Connect 또는 공개 App Store 페이지에서 정확한 앱 ID를 확인하세요.")
+                st.info("팁: App Store Connect 또는 공개 App Store 페이지에서 정확한 앱 ID와 이름을 확인하세요.")
         else:
             st.error("App Store 앱 ID는 숫자로만 입력해주세요.")
     else:
-        st.warning("App Store 앱 ID와 국가 코드를 입력해주세요.")
+        st.warning("App Store 앱 ID, 앱 이름, 국가 코드를 모두 입력해주세요.") # 경고 메시지 수정
 
 # --- 하단 설명 ---
 st.divider()
