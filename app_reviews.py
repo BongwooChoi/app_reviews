@@ -112,13 +112,13 @@ with col2:
                 tz = pytz.timezone('Asia/Seoul')
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(lambda x: x.tz_localize('UTC') if x.tzinfo is None else x)
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
-                # 평점 분포 (Altair로 붉은색 그래프)
+                # 평점 분포 (Altair로 붉은색 그래프, 레이블 제거)
                 st.subheader("평점 분포")
                 rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
                 rating_counts.columns = ['평점', 'count']
                 chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
-                    x=alt.X('평점:O', title='평점'),
-                    y=alt.Y('count:Q', title='건수')
+                    x=alt.X('평점:O', axis=None),
+                    y=alt.Y('count:Q', axis=None)
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
@@ -131,5 +131,6 @@ with col2:
         st.warning("App Store 앱 ID를 입력하세요.")
 
 # --- 하단 출처 ---
+
 st.divider()
 st.markdown("데이터 출처: `google-play-scraper`, iTunes RSS API with pagination")
