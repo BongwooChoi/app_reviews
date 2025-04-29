@@ -6,6 +6,7 @@ import pytz
 import requests
 import math
 import altair as alt
+import io # BytesIO 사용을 위해 import
 
 # --- Streamlit 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
@@ -150,13 +151,19 @@ with col1:
                          st.subheader(f"총 {len(df_g_disp)}개 리뷰") # 필터링된 리뷰 개수 표시
 
                     with btn_col_g:
-                        # 다운로드 버튼
-                        csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
+                        # 엑셀 파일 생성을 위한 BytesIO 객체 생성
+                        excel_buffer_g = io.BytesIO()
+                        # DataFrame을 엑셀 파일로 저장 (인덱스 제외, UTF-8 인코딩은 to_excel에서 기본 처리)
+                        df_g_disp.to_excel(excel_buffer_g, index=False, engine='openpyxl')
+                        # 파일 포인터를 시작으로 이동
+                        excel_buffer_g.seek(0)
+
+                        # 다운로드 버튼 (엑셀 형식)
                         st.download_button(
-                            label="다운로드",
-                            data=csv_g,
-                            file_name="google_reviews.csv",
-                            mime="text/csv"
+                            label="다운로드 (Excel)", # 버튼 라벨 변경
+                            data=excel_buffer_g, # BytesIO 객체 전달
+                            file_name="google_reviews.xlsx", # 파일 이름 변경
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # MIME 타입 변경
                             # key="google_download_button" # 필요하다면 고유 키 추가
                         )
                     st.dataframe(df_g_disp, height=500, use_container_width=True)
@@ -270,13 +277,19 @@ with col2:
                          st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)") # 필터링된 리뷰 개수 표시
 
                     with btn_col_a:
-                        # 다운로드 버튼
-                        csv_a = df_a.to_csv(index=False).encode('utf-8')
+                        # 엑셀 파일 생성을 위한 BytesIO 객체 생성
+                        excel_buffer_a = io.BytesIO()
+                        # DataFrame을 엑셀 파일로 저장 (인덱스 제외)
+                        df_a.to_excel(excel_buffer_a, index=False, engine='openpyxl')
+                         # 파일 포인터를 시작으로 이동
+                        excel_buffer_a.seek(0)
+
+                        # 다운로드 버튼 (엑셀 형식)
                         st.download_button(
-                            label="다운로드",
-                            data=csv_a,
-                            file_name="apple_reviews.csv",
-                            mime="text/csv"
+                            label="다운로드 (Excel)", # 버튼 라벨 변경
+                            data=excel_buffer_a, # BytesIO 객체 전달
+                            file_name="apple_reviews.xlsx", # 파일 이름 변경
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" # MIME 타입 변경
                             # key="apple_download_button" # 필요하다면 고유 키 추가
                         )
                     st.dataframe(df_a, height=500, use_container_width=True)
@@ -290,4 +303,3 @@ with col2:
 # --- 하단 출처 ---
 st.divider()
 st.markdown("데이터 출처: google-play-scraper, iTunes RSS API with pagination")
-
