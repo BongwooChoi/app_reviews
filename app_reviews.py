@@ -12,18 +12,21 @@ st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
 st.title("📱 앱 리뷰 대시보드")
 st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
 # --- 모바일에서도 두 컬럼을 수평으로 유지하기 위한 CSS ---
-st.markdown("""
-<style>
-/* 모바일 화면(최대 600px 폭)에서도 두 컬럼을 50%씩 나누어 수평 정렬 */
-@media (max-width: 600px) {
-  .stColumns > div {
-    width: 50% !important;
-    min-width: 50% !important;
-    display: inline-block !important;
-    float: left;
-  }
-}
-""", unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    @media (max-width: 600px) {
+      .stColumns > div {
+        width: 50% !important;
+        min-width: 50% !important;
+        display: inline-block !important;
+        float: left;
+      }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- 입력 섹션 ---
 st.sidebar.header("앱 정보 입력")
@@ -33,8 +36,6 @@ review_count_limit = st.sidebar.slider(
     "최대 리뷰 개수", 50, 200, 200, 10,
     help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건)."
 )
-
-# 시작일자 필터 사용 체크박스
 use_date_filter = st.sidebar.checkbox(
     "시작일자 필터 사용", value=False,
     help="선택 시 특정 날짜 이후 리뷰만 표시합니다."
@@ -50,10 +51,12 @@ if use_date_filter:
 # --- 레이아웃: 두 개 열 ---
 col1, col2 = st.columns(2)
 
-# --- Google Play Store 리뷰 (왼쪽) ---
+# --- Google Play Store 리뷰 ---
 with col1:
     st.header("🤖 Google Play 리뷰")
-    if google_app_id:
+    if not google_app_id:
+        st.warning("Google Play 앱 ID를 입력하세요.")
+    else:
         try:
             with st.spinner(f"'{google_app_id}' 리뷰 로딩 중... (전체)"):
                 google_reviews = reviews_all(
@@ -61,13 +64,14 @@ with col1:
                     lang='ko', country='kr', sort=Sort.NEWEST
                 )
 
-            if google_reviews:
+            if not google_reviews:
+                st.info("리뷰를 찾을 수 없습니다.")
+            else:
                 df_g = pd.DataFrame(google_reviews)
                 df_g['at'] = pd.to_datetime(df_g['at'], errors='coerce')
                 # 날짜 필터링
                 if use_date_filter and selected_start_date:
                     df_g = df_g[df_g['at'].dt.date >= selected_start_date]
-                # 유효한 리뷰만
                 df_g = df_g[df_g['at'].notna()]
 
                 if df_g.empty:
@@ -81,34 +85,32 @@ with col1:
                         df_g_disp[c] = df_g_disp[c].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
 
+                    # 평점 분포 및 테이블
                     st.subheader("평점 분포")
                     st.bar_chart(df_g_disp['평점'].value_counts().sort_index())
                     st.subheader(f"총 {len(df_g_disp)}개 리뷰 (전체)")
-# Google 리뷰 다운로드 버튼
-csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
-col_g1, col_g2 = st.columns([8,1])
-with col_g2:
-    st.download_button(
-        label="다운로드",
-        data=csv_g,
-        file_name="google_reviews.csv",
-        mime="text/csv"
-    )
-# 리뷰 테이블 표시
-st.dataframe(df_g_disp, height=500, use_container_width=True)(df_g_disp, height=500, use_container_width=True)
-            else:
-                st.info("리뷰를 찾을 수 없습니다.")
+                    # 다운로드 버튼
+                    csv_g = df_g_disp.to_csv(index=False).encode('utf-8')
+                    _, btn_col = st.columns([8,1])
+                    with btn_col:
+                        st.download_button(
+                            label="다운로드",
+                            data=csv_g,
+                            file_name="google_reviews.csv",
+                            mime="text/csv"
+                        )
+                    st.dataframe(df_g_disp, height=500, use_container_width=True)
         except google_exceptions.NotFoundError:
             st.error(f"앱 ID '{google_app_id}'를 찾을 수 없습니다.")
         except Exception as e:
             st.error(f"Google 리뷰 로딩 오류: {e}")
-    else:
-        st.warning("Google Play 앱 ID를 입력하세요.")
 
-# --- App Store 리뷰 (오른쪽) ---
+# --- App Store 리뷰 ---
 with col2:
     st.header("🍎 App Store 리뷰")
-    if apple_app_id:
+    if not apple_app_id:
+        st.warning("App Store 앱 ID를 입력하세요.")
+    else:
         try:
             with st.spinner(f"App Store ID '{apple_app_id}' 리뷰 로딩 중... (최대 {review_count_limit}건)"):
                 all_reviews = []
@@ -126,7 +128,9 @@ with col2:
                         break
                 reviews = all_reviews[:review_count_limit]
 
-            if reviews:
+            if not reviews:
+                st.info("App Store 리뷰를 찾을 수 없습니다.")
+            else:
                 df_a = pd.DataFrame([
                     {
                         '작성자': r['author']['name']['label'],
@@ -144,37 +148,33 @@ with col2:
 
                 tz = pytz.timezone('Asia/Seoul')
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(
-                    lambda x: x.tz_localize('UTC') if x.tzinfo is None else x
+                    lambda x: x.tz_localize('UTF', ambiguous='NaT', nonexistent='NaT') if x.tzinfo is None else x
                 )
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
 
+                # 평점 분포 및 테이블
                 st.subheader("평점 분포")
                 rating_counts = df_a['평점'].value_counts().sort_index().reset_index()
-                rating_counts.columns = ['평점', 'count']
+                rating_counts.columns = ['평점','count']
                 chart = alt.Chart(rating_counts).mark_bar(color='red').encode(
                     x=alt.X('평점:O', axis=alt.Axis(title=None)),
                     y=alt.Y('count:Q', axis=alt.Axis(title=None))
                 )
                 st.altair_chart(chart, use_container_width=True)
                 st.subheader(f"총 {len(df_a)}개 리뷰 (최대 {review_count_limit}건)")
-# App Store 리뷰 다운로드 버튼
-csv_a = df_a.to_csv(index=False).encode('utf-8')
-col_a1, col_a2 = st.columns([8,1])
-with col_a2:
-    st.download_button(
-        label="다운로드",
-        data=csv_a,
-        file_name="apple_reviews.csv",
-        mime="text/csv"
-    )
-# 리뷰 테이블 표시
-st.dataframe(df_a, height=500, use_container_width=True)(df_a, height=500, use_container_width=True)
-            else:
-                st.info("App Store 리뷰를 찾을 수 없습니다.")
+                # 다운로드 버튼
+                csv_a = df_a.to_csv(index=False).encode('utf-8')
+                _, btn_a = st.columns([8,1])
+                with btn_a:
+                    st.download_button(
+                        label="다운로드",
+                        data=csv_a,
+                        file_name="apple_reviews.csv",
+                        mime="text/csv"
+                    )
+                st.dataframe(df_a, height=500, use_container_width=True)
         except Exception as e:
             st.error(f"App Store 리뷰 로딩 오류: {e}")
-    else:
-        st.warning("App Store 앱 ID를 입력하세요.")
 
 # --- 하단 출처 ---
 
