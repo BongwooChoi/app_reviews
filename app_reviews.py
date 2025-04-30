@@ -101,54 +101,35 @@ with col1:
                     google_app_id,
                     lang='ko', country='kr', sort=Sort.NEWEST
                 )
-
             if not google_reviews:
                 st.info("리뷰를 찾을 수 없습니다.")
             else:
                 df_g = pd.DataFrame(google_reviews)
                 df_g['at'] = pd.to_datetime(df_g['at'], errors='coerce')
                 df_g = df_g[df_g['at'].notna()]
-
                 if use_date_filter and selected_start_date:
                     df_g = df_g[df_g['at'].dt.date >= selected_start_date]
-
                 if df_g.empty:
                     st.info(f"선택일 ({selected_start_date}) 이후 리뷰가 없습니다.")
                 else:
                     df_g_disp = df_g[['userName','score','at','content','replyContent','repliedAt']].copy()
                     df_g_disp.columns = ['작성자','평점','리뷰 작성일','리뷰 내용','개발자 답변','답변 작성일']
-
                     tz = pytz.timezone('Asia/Seoul')
                     for col in ['리뷰 작성일','답변 작성일']:
                         df_g_disp[col] = pd.to_datetime(df_g_disp[col], errors='coerce')
                         df_g_disp[col] = df_g_disp[col].dt.tz_localize('UTC', ambiguous='NaT', nonexistent='NaT')
                         df_g_disp[col] = df_g_disp[col].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
-
-                    for col in ['리뷰 내용','개발자 답변']:
-                        df_g_disp[col] = df_g_disp[col].apply(clean_text_for_excel)
-
-                    # 인덱스 리셋
+                    df_g_disp[['리뷰 내용','개발자 답변']] = df_g_disp[['리뷰 내용','개발자 답변']].applymap(clean_text_for_excel)
                     df_g_disp.reset_index(drop=True, inplace=True)
-
                     # 평점 분포 차트
                     st.subheader("평점 분포")
-                    rating_df_g = (
-                        df_g_disp['평점']
-                        .value_counts()
-                        .sort_index()
-                        .reset_index()
-                        .rename(columns={'index':'평점','평점':'개수'})
-                    )
-                    chart_g = (
-                        alt.Chart(rating_df_g)
-                           .mark_bar()
-                           .encode(
-                               x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
-                               y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
-                           )
+                    rating_df_g = df_g_disp['평점'].value_counts().sort_index().reset_index()
+                    rating_df_g.columns = ['평점','개수']
+                    chart_g = alt.Chart(rating_df_g).mark_bar().encode(
+                        x='평점:O',
+                        y='개수:Q'
                     )
                     st.altair_chart(chart_g, use_container_width=True)
-
                     # 총 리뷰 개수 및 다운로드
                     cnt_col, btn_col = st.columns([8,2])
                     with cnt_col:
@@ -159,10 +140,7 @@ with col1:
                         buf.seek(0)
                         st.download_button("다운로드", buf, file_name="google_reviews.xlsx",
                                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-                    # 데이터프레임 표시
                     st.dataframe(df_g_disp, height=500, use_container_width=True)
-
         except google_exceptions.NotFoundError:
             st.error(f"Google Play 앱 ID '{google_app_id}'를 찾을 수 없습니다.")
         except Exception as e:
@@ -192,7 +170,6 @@ with col2:
                     if len(all_reviews)>=review_count_limit or len(chunk)<per_page:
                         break
                 reviews = all_reviews[:review_count_limit]
-
             if reviews:
                 df_a = pd.DataFrame([
                     {'작성자': r.get('author',{}).get('name',{}).get('label','N/A'),
@@ -210,31 +187,18 @@ with col2:
                     st.info(f"선택일 ({selected_start_date}) 이후 App Store 리뷰가 없습니다.")
                 else:
                     tz = pytz.timezone('Asia/Seoul')
-                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(
-                        lambda x: x.tz_localize('UTC') if pd.notna(x) and x.tzinfo is None else x
-                    )
+                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(lambda x: x.tz_localize('UTC') if pd.notna(x) and x.tzinfo is None else x)
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
                     df_a[['제목','리뷰 내용']] = df_a[['제목','리뷰 내용']].applymap(clean_text_for_excel)
                     df_a.reset_index(drop=True, inplace=True)
-
                     st.subheader("평점 분포")
-                    rating_df_a = (
-                        df_a['평점']
-                        .value_counts()
-                        .sort_index()
-                        .reset_index()
-                        .rename(columns={'index':'평점','평점':'개수'})
-                    )
-                    chart_a = (
-                        alt.Chart(rating_df_a)
-                           .mark_bar()
-                           .encode(
-                               x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
-                               y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
-                           )
+                    rating_df_a = df_a['평점'].value_counts().sort_index().reset_index()
+                    rating_df_a.columns = ['평점','개수']
+                    chart_a = alt.Chart(rating_df_a).mark_bar().encode(
+                        x='평점:O',
+                        y='개수:Q'
                     )
                     st.altair_chart(chart_a, use_container_width=True)
-
                     cnt_col2, btn_col2 = st.columns([8,2])
                     with cnt_col2:
                         st.subheader(f"{len(df_a)}개 리뷰(최신)")
@@ -244,9 +208,7 @@ with col2:
                         buf2.seek(0)
                         st.download_button("다운로드", buf2, file_name="apple_reviews.xlsx",
                                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
                     st.dataframe(df_a, height=500, use_container_width=True)
-
         except requests.exceptions.RequestException as e:
             st.error(f"App Store RSS 피드 요청 오류: {e}")
         except Exception as e:
