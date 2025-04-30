@@ -143,8 +143,8 @@ with col1:
                         alt.Chart(rating_df_g)
                            .mark_bar()
                            .encode(
-                               x=alt.X('평점:O', axis=alt.Axis(title='평점')),
-                               y=alt.Y('개수:Q', axis=alt.Axis(title='개수'))
+                               x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
+                               y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
                            )
                     )
                     st.altair_chart(chart_g, use_container_width=True)
@@ -181,7 +181,7 @@ with col2:
                 pages = math.ceil(review_count_limit / per_page)
                 for page in range(1, pages+1):
                     url = f"https://itunes.apple.com/kr/rss/customerreviews/page={page}/id={apple_app_id}/json"
-                    resp = requests.get(url);
+                    resp = requests.get(url)
                     resp.raise_for_status()
                     entries = resp.json().get('feed',{}).get('entry',[])
                     if not entries or (page==1 and len(entries)<=1):
@@ -189,7 +189,8 @@ with col2:
                         break
                     chunk = entries[1:] if page==1 else entries
                     all_reviews.extend(chunk)
-                    if len(all_reviews)>=review_count_limit or len(chunk)<per_page: break
+                    if len(all_reviews)>=review_count_limit or len(chunk)<per_page:
+                        break
                 reviews = all_reviews[:review_count_limit]
 
             if reviews:
@@ -217,11 +218,20 @@ with col2:
                     df_a.reset_index(drop=True, inplace=True)
 
                     st.subheader("평점 분포")
-                    rating_df_a = df_a['평점'].value_counts().sort_index().reset_index()
-                    rating_df_a.columns = ['평점','개수']
-                    chart_a = alt.Chart(rating_df_a).mark_bar().encode(
-                        x=alt.X('평점:O', axis=alt.Axis(title='평점')),
-                        y=alt.Y('개수:Q', axis=alt.Axis(title='개수'))
+                    rating_df_a = (
+                        df_a['평점']
+                        .value_counts()
+                        .sort_index()
+                        .reset_index()
+                        .rename(columns={'index':'평점','평점':'개수'})
+                    )
+                    chart_a = (
+                        alt.Chart(rating_df_a)
+                           .mark_bar()
+                           .encode(
+                               x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
+                               y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
+                           )
                     )
                     st.altair_chart(chart_a, use_container_width=True)
 
