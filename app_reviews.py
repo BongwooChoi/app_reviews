@@ -8,8 +8,8 @@ import io  # BytesIO 사용을 위해 import
 import re  # 텍스트 정제를 위해 import
 
 # --- Streamlit 페이지 설정 ---
-st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
-st.title("📱 앱 리뷰 대시보드")
+st.set_page_config(layout="wide", page_title="앱 리뷰 모니터링")
+st.title("📱 앱 리뷰 모니터링")
 st.caption("Google Play와 App Store 리뷰를 동시에 확인하세요.")
 
 # --- 모바일에서도 두 컬럼 수평 유지 CSS ---
@@ -92,7 +92,7 @@ else:
                 avg_score = df_g_disp['평점'].mean()
                 col_left, col_right = st.columns([8,2])
                 with col_left:
-                    st.subheader(f"{len(df_g_disp)}개 리뷰 (평점 평균: {avg_score:.2f})")
+                    st.subheader(f"{len(df_g_disp)}개 리뷰")
                 with col_right:
                     buf = io.BytesIO()
                     df_g_disp.to_excel(buf, index=False, engine='openpyxl')
@@ -157,7 +157,7 @@ else:
                 avg_score_a = df_a['평점'].mean()
                 col_left_a, col_right_a = st.columns([8,2])
                 with col_left_a:
-                    st.subheader(f"{len(df_a)}개 리뷰 (평점 평균: {avg_score_a:.2f})")
+                    st.subheader(f"{len(df_a)}개 리뷰")
                 with col_right_a:
                     buf2 = io.BytesIO()
                     df_a.to_excel(buf2, index=False, engine='openpyxl')
