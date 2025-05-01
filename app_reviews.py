@@ -55,10 +55,10 @@ if use_date_filter:
     selected_start_date = st.sidebar.date_input(
         "리뷰 시작일 선택",
         value=date.today() - timedelta(days=30),
-        help="선택한 날짜(포함) 이후의 리뷰만 가져옵니다."
+        help="선택한 날짜(포함) 이후 리뷰만 가져옵니다."
     )
 
-# --- Google Play 리뷰 ---
+# --- Google Play 리뷰 섹션 ---
 st.header("🤖 Google Play 리뷰")
 if not google_app_id:
     st.warning("Google Play 앱 ID를 입력하세요.")
@@ -88,14 +88,12 @@ else:
                     df_g_disp[c] = df_g_disp[c].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S').fillna('N/A')
                 df_g_disp[['리뷰 내용','개발자 답변']] = df_g_disp[['리뷰 내용','개발자 답변']].applymap(clean_text_for_excel)
                 df_g_disp.reset_index(drop=True, inplace=True)
-                # 리뷰 개수 및 평균 평점
+                # 리뷰 개수 및 평균 평점, 다운로드 버튼을 같은 행에 배치
                 avg_score = df_g_disp['평점'].mean()
-                st.subheader(f"{len(df_g_disp)}개 리뷰 (평점 평균: {avg_score:.2f})")
-                # 다운로드 및 테이블
-                col_cnt, col_btn = st.columns([8,2])
-                with col_cnt:
-                    st.write("")
-                with col_btn:
+                col_left, col_right = st.columns([8,2])
+                with col_left:
+                    st.subheader(f"{len(df_g_disp)}개 리뷰 (평점 평균: {avg_score:.2f})")
+                with col_right:
                     buf = io.BytesIO()
                     df_g_disp.to_excel(buf, index=False, engine='openpyxl')
                     buf.seek(0)
@@ -110,7 +108,7 @@ else:
     except Exception as e:
         st.error(f"Google 리뷰 로딩 오류: {e}")
 
-# --- App Store 리뷰 ---
+# --- App Store 리뷰 섹션 ---
 st.header("🍎 App Store 리뷰")
 if not apple_app_id:
     st.warning("App Store 앱 ID를 입력하세요.")
@@ -155,14 +153,12 @@ else:
                 df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
                 df_a[['제목','리뷰 내용']] = df_a[['제목','리뷰 내용']].applymap(clean_text_for_excel)
                 df_a.reset_index(drop=True, inplace=True)
-                # 리뷰 개수 및 평균 평점
+                # 리뷰 개수 및 평균 평점, 다운로드 버튼을 같은 행에 배치
                 avg_score_a = df_a['평점'].mean()
-                st.subheader(f"{len(df_a)}개 리뷰 (평점 평균: {avg_score_a:.2f})")
-                # 다운로드 및 테이블
-                col_cnt2, col_btn2 = st.columns([8,2])
-                with col_cnt2:
-                    st.write("")
-                with col_btn2:
+                col_left_a, col_right_a = st.columns([8,2])
+                with col_left_a:
+                    st.subheader(f"{len(df_a)}개 리뷰 (평점 평균: {avg_score_a:.2f})")
+                with col_right_a:
                     buf2 = io.BytesIO()
                     df_a.to_excel(buf2, index=False, engine='openpyxl')
                     buf2.seek(0)
