@@ -194,7 +194,8 @@ with col2:
                     st.subheader("평점 분포")
                     rating_df_a = df_a['평점'].value_counts().sort_index().reset_index()
                     rating_df_a.columns = ['평점','개수']
-                    chart_a = alt.Chart(rating_df_a).mark_bar().encode(
+                    # 색상을 빨간색으로 설정
+                    chart_a = alt.Chart(rating_df_a).mark_bar(color='red').encode(
                         x='평점:O',
                         y='개수:Q'
                     )
