@@ -98,8 +98,7 @@ with col1:
         try:
             with st.spinner(f"{google_app_id} 리뷰 로딩 중..."):
                 google_reviews = reviews_all(
-                    google_app_id,
-                    lang='ko', country='kr', sort=Sort.NEWEST
+                    google_app_id, lang='ko', country='kr', sort=Sort.NEWEST
                 )
             if not google_reviews:
                 st.info("리뷰를 찾을 수 없습니다.")
@@ -123,13 +122,17 @@ with col1:
                     df_g_disp.reset_index(drop=True, inplace=True)
                     # 평점 분포
                     st.subheader("평점 분포")
-                    rating_df_g = df_g_disp['평점'].value_counts().sort_index().reset_index().rename(columns={'index':'평점','평점':'개수'})
+                    rating_df_g = (
+                        df_g_disp['평점'].value_counts()
+                        .sort_index()
+                        .reset_index()
+                        .rename(columns={'index':'평점','평점':'개수'})
+                    )
                     chart_g = alt.Chart(rating_df_g).mark_bar().encode(
-                        x='평점:O',
-                        y='개수:Q'
+                        x='평점:O', y='개수:Q'
                     )
                     st.altair_chart(chart_g, use_container_width=True)
-                    # 다운로드
+                    # 다운로드 및 테이블
                     cnt_col, btn_col = st.columns([8,2])
                     with cnt_col:
                         st.subheader(f"{len(df_g_disp)}개 리뷰(전체)")
@@ -164,7 +167,7 @@ with col2:
                     resp = requests.get(url)
                     resp.raise_for_status()
                     entries = resp.json().get('feed', {}).get('entry', [])
-                    if not entries or (page==1 and len(entries) <= 1):
+                    if not entries or (page == 1 and len(entries) <= 1):
                         if page == 1:
                             st.info("App Store 리뷰를 찾을 수 없습니다.")
                         break
@@ -173,7 +176,8 @@ with col2:
                     if len(all_reviews) >= review_count_limit:
                         break
                 reviews = all_reviews[:review_count_limit]
-            if reviews:\n                df_a = pd.DataFrame([
+            if reviews:
+                df_a = pd.DataFrame([
                     {
                         '작성자': r.get('author', {}).get('name', {}).get('label', 'N/A'),
                         '평점': int(r.get('im:rating', {}).get('label', 0)),
@@ -191,19 +195,25 @@ with col2:
                     st.info(f"선택일 ({selected_start_date}) 이후 App Store 리뷰가 없습니다.")
                 else:
                     tz = pytz.timezone('Asia/Seoul')
-                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(lambda x: x.tz_localize('UTC') if pd.notna(x) and x.tzinfo is None else x)
+                    df_a['리뷰 작성일'] = df_a['리뷰 작성일'].apply(
+                        lambda x: x.tz_localize('UTC') if pd.notna(x) and x.tzinfo is None else x
+                    )
                     df_a['리뷰 작성일'] = df_a['리뷰 작성일'].dt.tz_convert(tz).dt.strftime('%Y-%m-%d %H:%M:%S')
                     df_a[['제목','리뷰 내용']] = df_a[['제목','리뷰 내용']].applymap(clean_text_for_excel)
                     df_a.reset_index(drop=True, inplace=True)
                     # 평점 분포
                     st.subheader("평점 분포")
-                    rating_df_a = df_a['평점'].value_counts().sort_index().reset_index().rename(columns={'index':'평점','평점':'개수'})
+                    rating_df_a = (
+                        df_a['평점'].value_counts()
+                        .sort_index()
+                        .reset_index()
+                        .rename(columns={'index':'평점','평점':'개수'})
+                    )
                     chart_a = alt.Chart(rating_df_a).mark_bar(color='red').encode(
-                        x='평점:O',
-                        y='개수:Q'
+                        x='평점:O', y='개수:Q'
                     )
                     st.altair_chart(chart_a, use_container_width=True)
-                    cnt_col2, btn\_col2 = st.columns([8,2])
+                    cnt_col2, btn_col2 = st.columns([8,2])
                     with cnt_col2:
                         st.subheader(f"{len(df_a)}개 리뷰(최신)")
                     with btn_col2:
