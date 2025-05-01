@@ -124,7 +124,7 @@ with col1:
                         .rename(columns={'index':'평점','평점':'개수'})
                     )
                     chart_g = alt.Chart(rating_df_g).mark_bar().encode(
-                        x=alt.X('평점:O', title='평점'),
+                        x=alt.X('평점:Q', title='평점'),
                         y=alt.Y('개수:Q', title='개수')
                     )
                     st.altair_chart(chart_g, use_container_width=True)
@@ -164,7 +164,6 @@ with col2:
                     resp = requests.get(url)
                     resp.raise_for_status()
                     entries = resp.json().get('feed', {}).get('entry', [])
-                    # 첫 페이지에서 리뷰가 없으면 종료
                     if not entries or (page == 1 and len(entries) <= 1):
                         break
                     page_entries = entries[1:] if page == 1 else entries
@@ -205,7 +204,7 @@ with col2:
                         .rename(columns={'index':'평점','평점':'개수'})
                     )
                     chart_a = alt.Chart(rating_df_a).mark_bar().encode(
-                        x=alt.X('평점:O', title='평점'),
+                        x=alt.X('평점:Q', title='평점'),
                         y=alt.Y('개수:Q', title='개수')
                     )
                     st.altair_chart(chart_a, use_container_width=True)
