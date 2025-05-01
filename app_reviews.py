@@ -4,10 +4,9 @@ from google_play_scraper import reviews_all, Sort, exceptions as google_exceptio
 from datetime import date, timedelta
 import pytz
 import requests
-import math
-import altair as alt
 import io  # BytesIO 사용을 위해 import
 import re  # 텍스트 정제를 위해 import
+import altair as alt
 
 # --- Streamlit 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="앱 리뷰 대시보드")
@@ -70,10 +69,6 @@ def clean_text_for_excel(text):
 st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
 apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
-review_count_limit = st.sidebar.slider(
-    "최대 리뷰 개수", 50, 200, 200, 10,
-    help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건)."
-)
 use_date_filter = st.sidebar.checkbox(
     "시작일자 필터 사용", value=False,
     help="선택 시 특정 날짜 이후 리뷰만 표시합니다."
@@ -129,7 +124,8 @@ with col1:
                         .rename(columns={'index':'평점','평점':'개수'})
                     )
                     chart_g = alt.Chart(rating_df_g).mark_bar().encode(
-                        x='평점:O', y='개수:Q'
+                        x=alt.X('평점:O', title='평점'),
+                        y=alt.Y('개수:Q', title='개수')
                     )
                     st.altair_chart(chart_g, use_container_width=True)
                     # 다운로드 및 테이블
@@ -160,22 +156,21 @@ with col2:
         try:
             with st.spinner(f"App Store ID '{apple_app_id}' 리뷰 로딩 중..."):
                 all_reviews = []
+                page = 1
                 per_page = 50
-                pages = math.ceil(review_count_limit / per_page)
-                for page in range(1, pages+1):
+                # 제한 없이 모든 페이지 순회
+                while True:
                     url = f"https://itunes.apple.com/kr/rss/customerreviews/page={page}/id={apple_app_id}/json"
                     resp = requests.get(url)
                     resp.raise_for_status()
                     entries = resp.json().get('feed', {}).get('entry', [])
+                    # 첫 페이지에서 리뷰가 없으면 종료
                     if not entries or (page == 1 and len(entries) <= 1):
-                        if page == 1:
-                            st.info("App Store 리뷰를 찾을 수 없습니다.")
                         break
                     page_entries = entries[1:] if page == 1 else entries
                     all_reviews.extend(page_entries)
-                    if len(all_reviews) >= review_count_limit:
-                        break
-                reviews = all_reviews[:review_count_limit]
+                    page += 1
+                reviews = all_reviews
             if reviews:
                 df_a = pd.DataFrame([
                     {
@@ -209,13 +204,14 @@ with col2:
                         .reset_index()
                         .rename(columns={'index':'평점','평점':'개수'})
                     )
-                    chart_a = alt.Chart(rating_df_a).mark_bar(color='red').encode(
-                        x='평점:O', y='개수:Q'
+                    chart_a = alt.Chart(rating_df_a).mark_bar().encode(
+                        x=alt.X('평점:O', title='평점'),
+                        y=alt.Y('개수:Q', title='개수')
                     )
                     st.altair_chart(chart_a, use_container_width=True)
                     cnt_col2, btn_col2 = st.columns([8,2])
                     with cnt_col2:
-                        st.subheader(f"{len(df_a)}개 리뷰(최신)")
+                        st.subheader(f"{len(df_a)}개 리뷰(전체)")
                     with btn_col2:
                         buf2 = io.BytesIO()
                         df_a.to_excel(buf2, index=False, engine='openpyxl')
