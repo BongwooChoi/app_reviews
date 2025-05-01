@@ -71,10 +71,14 @@ def clean_text_for_excel(text):
 st.sidebar.header("앱 정보 입력")
 google_app_id = st.sidebar.text_input("Google Play 앱 ID (패키지 이름)", "kr.co.kbliSmart")
 apple_app_id = st.sidebar.text_input("App Store 앱 ID (numeric ID)", "511711198")
-review_count_limit = st.sidebar.slider("최대 리뷰 개수", 50, 200, 200, 10,
-    help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건).")
-use_date_filter = st.sidebar.checkbox("시작일자 필터 사용", value=False,
-    help="선택 시 특정 날짜 이후 리뷰만 표시합니다.")
+review_count_limit = st.sidebar.slider(
+    "최대 리뷰 개수", 50, 200, 200, 10,
+    help="App Store RSS 피드로 가져올 리뷰 최대 개수를 설정하세요 (최대 200건)."
+)
+use_date_filter = st.sidebar.checkbox(
+    "시작일자 필터 사용", value=False,
+    help="선택 시 특정 날짜 이후 리뷰만 표시합니다."
+)
 selected_start_date = None
 if use_date_filter:
     selected_start_date = st.sidebar.date_input(
@@ -94,7 +98,10 @@ with col1:
     else:
         try:
             with st.spinner(f"{google_app_id} 리뷰 로딩 중..."):
-                google_reviews = reviews_all(google_app_id, lang='ko', country='kr', sort=Sort.NEWEST)
+                google_reviews = reviews_all(
+                    google_app_id,
+                    lang='ko', country='kr', sort=Sort.NEWEST
+                )
             if not google_reviews:
                 st.info("리뷰를 찾을 수 없습니다.")
             else:
@@ -119,8 +126,8 @@ with col1:
                     st.subheader("평점 분포")
                     rating_df_g = df_g_disp['평점'].value_counts().sort_index().reset_index().rename(columns={'index':'평점','평점':'개수'})
                     chart_g = alt.Chart(rating_df_g).mark_bar().encode(
-                        x=alt.X('평점:O', title='평점'),
-                        y=alt.Y('개수:Q', title='개수')
+                        x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
+                        y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
                     )
                     st.altair_chart(chart_g, use_container_width=True)
                     # 다운로드
@@ -131,9 +138,11 @@ with col1:
                         buf = io.BytesIO()
                         df_g_disp.to_excel(buf, index=False, engine='openpyxl')
                         buf.seek(0)
-                        st.download_button("다운로드", buf,
-                                           file_name="google_reviews.xlsx",
-                                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        st.download_button(
+                            "다운로드", buf,
+                            file_name="google_reviews.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     st.dataframe(df_g_disp, height=500, use_container_width=True)
         except google_exceptions.NotFoundError:
             st.error(f"Google Play 앱 ID '{google_app_id}'를 찾을 수 없습니다.")
@@ -194,8 +203,8 @@ with col2:
                     st.subheader("평점 분포")
                     rating_df_a = df_a['평점'].value_counts().sort_index().reset_index().rename(columns={'index':'평점','평점':'개수'})
                     chart_a = alt.Chart(rating_df_a).mark_bar(color='red').encode(
-                        x=alt.X('평점:O', title='평점'),
-                        y=alt.Y('개수:Q', title='개수')
+                        x=alt.X(field='평점', type='ordinal', axis=alt.Axis(title='평점')),
+                        y=alt.Y(field='개수', type='quantitative', axis=alt.Axis(title='개수'))
                     )
                     st.altair_chart(chart_a, use_container_width=True)
                     cnt_col2, btn_col2 = st.columns([8,2])
@@ -205,9 +214,11 @@ with col2:
                         buf2 = io.BytesIO()
                         df_a.to_excel(buf2, index=False, engine='openpyxl')
                         buf2.seek(0)
-                        st.download_button("다운로드", buf2,
-                                           file_name="apple_reviews.xlsx",
-                                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                        st.download_button(
+                            "다운로드", buf2,
+                            file_name="apple_reviews.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     st.dataframe(df_a, height=500, use_container_width=True)
         except requests.exceptions.RequestException as e:
             st.error(f"App Store RSS 피드 요청 오류: {e}")
